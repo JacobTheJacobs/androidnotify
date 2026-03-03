@@ -1,6 +1,5 @@
 package com.jacobs.androidnotifyme;
 
-
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,10 +8,16 @@ import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-
+/**
+ * CustomNotifierListener
+ * Intercepts Android OS notifications, extracts package/title/text details,
+ * and broadcasts them locally for MainActivity processing.
+ */
 public class CustomNotifierListener extends NotificationListenerService {
-    Context context;
-    String titleData="", textData="";
+
+    private static final String TAG = "CustomNotifierListener";
+    private Context context;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -21,30 +26,31 @@ public class CustomNotifierListener extends NotificationListenerService {
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        String packageName = sbn.getPackageName();
-        Bundle extras = sbn.getNotification().extras;
-        if(extras.getString("android.title")!=null){
-            titleData = extras.getString("android.title");
-        }else{
-            titleData = "";
-        }
-        if(extras.getCharSequence("android.text")!=null){
-            textData = extras.getCharSequence("android.text").toString();
-        }else{
-            textData = "";
+        if (sbn == null || sbn.getNotification() == null || sbn.getNotification().extras == null) {
+            return;
         }
 
-        Log.d("Package", packageName);
-        Log.d("Title", titleData);
-        Log.d("Text", textData);
+        String packageName = sbn.getPackageName();
+        Bundle extras = sbn.getNotification().extras;
+        
+        String titleData = extras.getString("android.title", "");
+        CharSequence textSeq = extras.getCharSequence("android.text");
+        String textData = textSeq != null ? textSeq.toString() : "";
+
+        Log.d(TAG, "Package: " + packageName);
+        Log.d(TAG, "Title: " + titleData);
+        Log.d(TAG, "Text: " + textData);
+
         Intent msgrcv = new Intent("Msg");
         msgrcv.putExtra("package", packageName);
         msgrcv.putExtra("title", titleData);
         msgrcv.putExtra("text", textData);
+        
         LocalBroadcastManager.getInstance(context).sendBroadcast(msgrcv);
     }
+
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-        Log.d("Msg", "Notification Removed");
+        Log.d(TAG, "Notification Removed");
     }
 }
